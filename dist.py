@@ -2,6 +2,7 @@
 
 import graphviz as graphviz
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.special import beta, gamma
@@ -14,6 +15,7 @@ warnings.simplefilter('ignore')
 #アイデア
 #回帰分析も入れていく
 
+
 radio_d = st.sidebar.radio('メニュー',
                           ("確率分布の関係",
                            "ベルヌーイ分布",
@@ -22,6 +24,7 @@ radio_d = st.sidebar.radio('メニュー',
                            "指数分布",
                            "正規分布",
                            "ベータ分布",
+                           "回帰分析"
                            ))
 
 if radio_d == "確率分布の関係":
@@ -58,19 +61,21 @@ if radio_d == "ベルヌーイ分布":
 
 if radio_d == "二項分布":
     st.write("二項分布")
-    n = st.number_input(
-        'パラメータn',
-        min_value=1,
-        max_value=100,
-        value=6,
-    )
-
-    p = st.number_input(
-        'パラメータp',
-        min_value=0.0,
-        max_value=1.0,
-        value=0.5,
-    )
+    col1, col2 = st.beta_columns(2)
+    with col1:
+        n = st.number_input(
+            'パラメータn',
+            min_value=1,
+            max_value=100,
+            value=6,
+        )
+    with col2:
+        p = st.number_input(
+            'パラメータp',
+            min_value=0.0,
+            max_value=1.0,
+            value=0.5,
+        )
 
     x = np.arange(0, n+1, 1)
     y = map(lambda k:math.factorial(n)/(math.factorial(n-k)*math.factorial(k))*p**(k)*(1-p)**(n-k),x)
@@ -99,12 +104,12 @@ if radio_d == "指数分布":
     st.write("指数分布")
     l = st.number_input(
         'パラメータλ',
-        min_value=0,
-        max_value=100,
-        value=2,
+        min_value=0.01,
+        max_value=100.0,
+        value=2.0,
     )
 
-    x = np.arange(0, 30, 1)
+    x = np.arange(0, 30, 0.1)
     y = map(lambda k:l * np.exp(-l*k),x)
     df = pd.DataFrame(data=y,index=x,columns=["y"])
     st.latex(r'''確率密度関数：f(x)=\lambda e^{-\lambda x}''')
@@ -123,7 +128,7 @@ if radio_d == "正規分布":
         )
     with col2:   
         v = st.number_input(
-            '分散σ^2',
+            'パラメータσ^2',
             min_value=1,
             max_value=100,
             value=1,
@@ -161,3 +166,60 @@ if radio_d == "ベータ分布":
     st.latex(r'''確率密度関数：f(x)=\frac{x^{(α-1)}(1-x)^{(β-1)}}{B(α,β)}''')
     st.latex(r'''平均：\frac{α}{α+β}　　分散：\frac{αβ}{(α+β)^2(α+β+1)}''')
     st.line_chart(df)
+
+#--------------------------------------------------------------------------
+
+from statsmodels.formula.api import ols
+from scipy.stats import norm, uniform
+import lmdiag
+import statsmodels.api as sm
+import streamlit.components.v1 as components
+
+def ols_sim(n, u_sd):  # n=標本の大きさ，　u_sd=誤差項の標準偏差
+    
+    x = uniform.rvs(1, 10, size=n)  # 説明変数
+    u = norm.rvs(scale=u_sd, size=n)  # 誤差項
+    y = 1.0 + 0.5*x + u               # 被説明変数
+    
+    df = pd.DataFrame({'Y':y, 'X':x})  # DataFrame
+    
+    res = ols(formula='Y ~ X', data=df).fit()  # OLSの計算
+    u_standardized = res.get_influence().resid_studentized_internal  # 標準化残差
+    
+    return x, y, res.fittedvalues, res.resid, u_standardized, res.rsquared  # 返り値の設定
+
+if radio_d == "回帰分析":
+
+    col1, col2, col3 = st.beta_columns(3)
+    with col1:
+        n = st.number_input(
+            'サンプルサイズ',
+            min_value=2,
+            max_value=1000,
+            value=100,
+        )
+    with col2:   
+        m = st.number_input(
+            '期待値',
+            min_value=-100.0,
+            max_value=100.0,
+            value=0.0,
+        )
+    with col3:   
+        s = st.number_input(
+            '標準偏差',
+            min_value=0.1,
+            max_value=10.0,
+            value=1.0,
+        )
+
+    x = norm.rvs(loc=m, scale=s, size=n)  # 期待値、標準偏差、サイズ、説明変数
+    u = norm.rvs(size=n)  # 誤差項（標準正規分布）
+    y = 1 + 0.5*x + u  # 説明変数
+
+    df_diag = pd.DataFrame({'Y':y, 'X':x})  # DataFrameの作成
+
+    res_diag = ols(formula='Y ~ X', data=df_diag).fit(disp=0)  # OLS推定
+
+    st.table(res_diag.summary())
+  
