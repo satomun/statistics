@@ -1,0 +1,10 @@
+streamlit
+pandas
+graphviz
+matplotlib
+numpy
+pandas
+sklearn
+scipy
+warnings
+PIL
