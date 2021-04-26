@@ -5,11 +5,13 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn import linear_model
 from scipy.special import beta, gamma
 import streamlit as st
 import time
 import warnings
 warnings.simplefilter('ignore')
+from PIL import Image
 
 
 #アイデア
@@ -49,7 +51,7 @@ if radio_d == "ベルヌーイ分布":
         'パラメータp',
         min_value=0.0,
         max_value=1.0,
-        value=0.5,
+        value=0.6,
     )
 
     x = [0,1]
@@ -93,7 +95,7 @@ if radio_d == "ポアソン分布":
         value=2,
     )
 
-    x = np.arange(0, 30, 1)
+    x = np.arange(0, l*10, 1)
     y = map(lambda k:(l ** k) * np.exp(-l)/math.factorial(k),x)
     df = pd.DataFrame(data=y,index=x,columns=["y"])
     st.latex(r'''確率関数：P(X=k)=\frac{\lambda^k e^{-\lambda}}{k!}''')
@@ -109,7 +111,7 @@ if radio_d == "指数分布":
         value=2.0,
     )
 
-    x = np.arange(0, 30, 0.1)
+    x = np.arange(0, 1/l*5, 0.1)
     y = map(lambda k:l * np.exp(-l*k),x)
     df = pd.DataFrame(data=y,index=x,columns=["y"])
     st.latex(r'''確率密度関数：f(x)=\lambda e^{-\lambda x}''')
@@ -133,7 +135,7 @@ if radio_d == "正規分布":
             max_value=100,
             value=1,
         )
-    x = np.arange(-10, 10, 0.1)
+    x = np.arange(m-v*5, m+v*5, 0.1)
     y = map(lambda k: 1/np.sqrt(2*np.pi*v) * np.exp(-((k-m)**2)/(2*v)),x)
     # y = map(lambda k:k**2,x)
     df = pd.DataFrame(data=y,index=x,columns=["y"])
@@ -142,6 +144,10 @@ if radio_d == "正規分布":
             ''')
     st.latex(r'''平均：μ　　分散：σ^2''')
     st.line_chart(df)
+
+    st.subheader("標準偏差ごとの区間")
+    image = Image.open('norm1.png')
+    st.image(image, caption='全体に対して占める割合')
 
 if radio_d == "ベータ分布":
     st.write("ベータ分布")
@@ -160,6 +166,7 @@ if radio_d == "ベータ分布":
             max_value=100.0,
             value=2.0,
         )
+    
     x = np.arange(0, 1.02, 0.02)
     y = map(lambda k: k**(a-1)*(1-k)**(b-1)/beta(a,b),x)
     df = pd.DataFrame(data=y,index=x,columns=["y"])
@@ -169,57 +176,13 @@ if radio_d == "ベータ分布":
 
 #--------------------------------------------------------------------------
 
-from statsmodels.formula.api import ols
-from scipy.stats import norm, uniform
-import lmdiag
-import statsmodels.api as sm
-import streamlit.components.v1 as components
-
-def ols_sim(n, u_sd):  # n=標本の大きさ，　u_sd=誤差項の標準偏差
-    
-    x = uniform.rvs(1, 10, size=n)  # 説明変数
-    u = norm.rvs(scale=u_sd, size=n)  # 誤差項
-    y = 1.0 + 0.5*x + u               # 被説明変数
-    
-    df = pd.DataFrame({'Y':y, 'X':x})  # DataFrame
-    
-    res = ols(formula='Y ~ X', data=df).fit()  # OLSの計算
-    u_standardized = res.get_influence().resid_studentized_internal  # 標準化残差
-    
-    return x, y, res.fittedvalues, res.resid, u_standardized, res.rsquared  # 返り値の設定
-
 if radio_d == "回帰分析":
 
-    col1, col2, col3 = st.beta_columns(3)
-    with col1:
-        n = st.number_input(
-            'サンプルサイズ',
-            min_value=2,
-            max_value=1000,
-            value=100,
-        )
-    with col2:   
-        m = st.number_input(
-            '期待値',
-            min_value=-100.0,
-            max_value=100.0,
-            value=0.0,
-        )
-    with col3:   
-        s = st.number_input(
-            '標準偏差',
-            min_value=0.1,
-            max_value=10.0,
-            value=1.0,
-        )
+    n = st.number_input(
+        'サンプルサイズ',
+        min_value=2,
+        max_value=1000,
+        value=100,
+    )
 
-    x = norm.rvs(loc=m, scale=s, size=n)  # 期待値、標準偏差、サイズ、説明変数
-    u = norm.rvs(size=n)  # 誤差項（標準正規分布）
-    y = 1 + 0.5*x + u  # 説明変数
-
-    df_diag = pd.DataFrame({'Y':y, 'X':x})  # DataFrameの作成
-
-    res_diag = ols(formula='Y ~ X', data=df_diag).fit(disp=0)  # OLS推定
-
-    st.table(res_diag.summary())
-  
+    st.title("作成中")
