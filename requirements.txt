@@ -4,7 +4,6 @@ graphviz
 matplotlib
 numpy
 pandas
-math
 sklearn
 scipy
 warnings
