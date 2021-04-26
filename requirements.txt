@@ -6,5 +6,4 @@ numpy
 pandas
 sklearn
 scipy
-warnings
 PIL
